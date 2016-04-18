@@ -1,0 +1,120 @@
+---
+title: "Regression Models Course Project"
+author: "Tan Woei Ming"
+date: "15 April 2016"
+output: pdf_document
+---
+
+## Executive Summary
+
+**mtcars** is the data extracted from the 1974 Motor Trend US magazine, consist of fuel consumption (mpg) and 10 other design and performance parameters (cyl,disp,hp,drat,wt,qsec,vs,am,gear and carb) [type ?mtcars for more information]
+
+Data exploration is performed using basic plot to find the relationship between the parameters and mpg. Using the properties of linear regression, we are able to find any significant change of parameters by keeping others constant, when performing full parameters model fit.
+
+Instead of over-fit (full parameters), **we narrow down to wt, qsec and am, using the p-value in the full parameters model fit**. We fit mpg using those parameters and also find the **significant different (95% confidence level) between the transmission type (am), where manual transmission is 2.94 miles/gallon (keeping others no change) higher than the automatic one**.
+
+
+## A. Data Exploratory and Basic Data Analysis 
+
+First, we want to understand more on each parameters and the data type. Below shows that:
+```{r echo=FALSE}
+data("mtcars")
+str(mtcars)
+```
+
+We also make plot between each parameters and mpg to briefly understand the relationship. From the plot, we find that there are multiple parameters have the relationship with mpg.  
+```{r echo=FALSE,warning=FALSE}
+par(mfrow=c(2,3),margin=c(1,1,1,1))
+plot(mtcars$cyl,mtcars$mpg);
+plot(mtcars$disp,mtcars$mpg);
+plot(mtcars$hp,mtcars$mpg);
+plot(mtcars$drat,mtcars$mpg);
+plot(mtcars$wt,mtcars$mpg);
+plot(mtcars$qsec,mtcars$mpg);
+plot(mtcars$vs,mtcars$mpg);
+plot(mtcars$am,mtcars$mpg);
+plot(mtcars$gear,mtcars$mpg);
+plot(mtcars$carb,mtcars$mpg);
+```
+
+
+## B. Model Selection and Fitting 
+
+We could start by over-fit the model and find out the residual range, so that we could do an iterative model fit by adding the relavent parameters one by one and keeping the residual in range.
+
+First, we try to fit all parameters, the **residual range (-3.450644,4.627094) and Adjusted R-squared 0.8066**. This is the residual range and R-squared target we want to achieve later when we select the parameters for the model.
+
+```{r}
+fit_full<-lm(mpg~.,data=mtcars)
+#model fit summary
+summary(fit_full)
+#residual range
+range(fit_full$residuals)
+#residual plot
+par(mfrow=c(1,2))
+plot(fit_full$residuals,col=factor(mtcars$am))
+plot(fit_full$residuals~mtcars$mpg,col=factor(mtcars$am))
+```
+
+Second, we also try to fit just the transmission type (am). Obviously the residual is higher than the full parameters, in the **range (-9.392308,9.507692) and Adjusted R-squared is low at 0.3385**. If we look at the residual by mpg plot, observed there is a consistent different between the automatic and manual transmission, meaning we need to add more parameters to the model to bring down the residual.
+
+```{r}
+fit_am<-lm(mpg~factor(am),data=mtcars)
+#model fit summary
+summary(fit_am)
+#residual range
+range(fit_am$residuals)
+#residual plot
+par(mfrow=c(1,2))
+plot(fit_am$residuals,col=factor(mtcars$am))
+plot(fit_am$residuals~mtcars$mpg,col=factor(mtcars$am))
+```
+
+In order to add more relavent paremeters, we take the top 3 parameters in the full parameter fit based on the p-value: wt, qsec and am. Fit those parameters to the model and find the **residual range in (-3.481067,4.660998) and Adjusted R-squared 0.8336**, which is close to our target residual range and R-squared (in the over-fit model). **In other words, we have achieved the balance between fitting too little parameters and over-fit situation. So, we narrow down the parameters from 10 to just 3, with the acceptable residual range and R-squared.**
+
+```{r}
+fit_opt<-lm(mpg~wt+qsec+factor(am),data=mtcars)
+#model fit summary
+summary(fit_opt)
+#residual range
+range(fit_opt$residuals)
+```
+
+
+## C. Coefficient Interpretation 
+
+Review the last model fit (fit_opt), we find that wt, qsec and am fit pretty well with the acceptable residual range and R-squared. Now lets look at the coefficient:
+
+To find the slope of automatic transmission (am=0), is the summation of Intercept, wt and qsec, which is 6.927163. The slope of manual transmission (am=1), is  the summation of Intercept, wt，qsec and am, which is 9.863. The p-value between automatic and manual transmission (am=0 and am=1) is 0.047.
+
+The test show that there is a different in transmission with 95% confidence level. The different is 2.935837.
+
+```{r}
+#coefficient and p-value
+summary(fit_opt)$coef
+#slope of am=0
+sum(summary(fit_opt)$coef[1:3,1])
+#slope of am=1
+sum(summary(fit_opt)$coef[1:4,1])
+#the p-value between am=0 and am=1
+summary(fit_opt)$coef[4,4]
+#the different in mpg between am=0 and am=1
+sum(summary(fit_opt)$coef[1:4,1])-sum(summary(fit_opt)$coef[1:3,1])
+```
+
+
+## D. Residual Analysis
+
+The residual of the fit_opt model is random across the mpg. There is no pattern observed in the residual plot.
+
+```{r}
+#residual plot
+par(mfrow=c(1,2))
+plot(fit_opt$residuals,col=factor(mtcars$am))
+plot(fit_opt$residuals~mtcars$mpg,col=factor(mtcars$am))
+plot(fit_opt)
+```
+
+
+
+DataScience - Rgression Models <http://github.com/twming/datascience-regressionmodels>
